@@ -1,0 +1,87 @@
+#include <dht.h>
+#include <ESP8266WiFi.h> 
+ 
+const char* wifiName  = "SSID";         
+const char* wifiPass = "PASSWORD";     
+WiFiServer server(80);
+
+#define dht_dpin D1 
+const int pinoSensor = A0; //Valor sensor temperatura
+int valorSolo; //Valor sensor solo 
+dht dht;
+ 
+void setup(){
+ Serial.begin(115200); 
+ Serial.println("Lendo a umidade do solo..."); 
+ pinMode(12, OUTPUT);
+ pinMode(13, OUTPUT);
+ 
+  delay(10);
+  // We start by connecting to a WiFi network 
+  Serial.println();
+  Serial.print("ESP8266 MAC: ");
+  Serial.println(WiFi.macAddress());
+  Serial.print("Connecting to ");
+  Serial.println(wifiName);
+ 
+  WiFi.begin(wifiName, wifiPass);
+ 
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+ 
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+server.begin();
+  Serial.println("Servidor inicializado");
+
+Serial.print("IP para se conectar ao NodeMCU: ");
+Serial.print("http://"); 
+Serial.println(WiFi.localIP()); //ESCREVE NA SERIAL O IP RECEBIDO DENTRO DA REDE SEM FIO (O IP NESSA PRÁTICA É RECEBIDO DE FORMA AUTOMÁTICA)
+}
+ 
+void loop(){  
+
+valorSolo = analogRead(pinoSensor);
+dht.read11(dht_dpin); 
+ 
+  
+WiFiClient client = server.available(); //VERIFICA SE ALGUM CLIENTE ESTÁ CONECTADO NO SERVIDOR
+if (!client) { //SE NÃO EXISTIR CLIENTE CONECTADO, FAZ
+return; //REEXECUTA O PROCESSO ATÉ QUE ALGUM CLIENTE SE CONECTE AO SERVIDOR
+}
+
+Serial.println("Novo cliente se conectou!"); 
+while(!client.available()){ //ENQUANTO CLIENTE ESTIVER CONECTADO
+delay(1); 
+}
+
+client.println("HTTP/1.1 200 OK"); 
+client.println("Content-Type: text/html"); 
+client.println("");
+client.println("<!DOCTYPE HTML>"); 
+client.println("<html>"); 
+client.println("<h1><center>"); 
+client.println("Umidade do solo:");
+client.println(valorSolo); 
+client.println("<br>");
+client.println("Umidade: ");
+client.println(dht.humidity);
+client.println("<br>");
+client.println("Temperatura: ");
+client.println(dht.temperature);
+client.println("C");
+client.println("<br>");
+//client.println("Quant. solo seco: ");
+//client.println(soloSeco);
+//client.println("<br>");
+client.println("</center></h1>");
+client.println("</html>"); 
+delay(1); 
+Serial.println("Cliente desconectado"); 
+Serial.println(""); 
+}
